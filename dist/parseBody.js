@@ -1,4 +1,4 @@
-/* @flow */
+
 /**
  *  Copyright (c) 2015, Facebook, Inc.
  *  All rights reserved.
@@ -8,15 +8,36 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
-import contentType from 'content-type';
-import getBody from 'raw-body';
-import httpError from 'http-errors';
-import querystring from 'querystring';
-import zlib from 'zlib';
-import type { Request } from 'express';
+'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+exports.parseBody = parseBody;
 
-export function parseBody(req: Request, next: NodeCallback): void {
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+var _contentType = require('content-type');
+
+var _contentType2 = _interopRequireDefault(_contentType);
+
+var _rawBody = require('raw-body');
+
+var _rawBody2 = _interopRequireDefault(_rawBody);
+
+var _httpErrors = require('http-errors');
+
+var _httpErrors2 = _interopRequireDefault(_httpErrors);
+
+var _querystring = require('querystring');
+
+var _querystring2 = _interopRequireDefault(_querystring);
+
+var _zlib = require('zlib');
+
+var _zlib2 = _interopRequireDefault(_zlib);
+
+function parseBody(req, next) {
   try {
     // If express has already parsed a body as a keyed object, use it.
     if (typeof req.body === 'object' && !(req.body instanceof Buffer)) {
@@ -28,12 +49,11 @@ export function parseBody(req: Request, next: NodeCallback): void {
       return next();
     }
 
-    var typeInfo = contentType.parse(req);
+    var typeInfo = _contentType2['default'].parse(req);
 
     // If express has already parsed a body as a string, and the content-type
     // was application/graphql, parse the string body.
-    if (typeof req.body === 'string' &&
-        typeInfo.type === 'application/graphql') {
+    if (typeof req.body === 'string' && typeInfo.type === 'application/graphql') {
       return next(null, graphqlParser(req.body));
     }
 
@@ -59,23 +79,21 @@ export function parseBody(req: Request, next: NodeCallback): void {
   }
 }
 
-type NodeCallback = (error?: ?Error, data?: Object) => void;
-
 function jsonEncodedParser(body) {
   if (jsonObjRegex.test(body)) {
     /* eslint-disable no-empty */
     try {
       return JSON.parse(body);
-    } catch (error) {
-      // Do nothing
-    }
+    } catch (error) {}
+    // Do nothing
+
     /* eslint-enable no-empty */
   }
-  throw httpError(400, 'POST body sent invalid JSON.');
+  throw (0, _httpErrors2['default'])(400, 'POST body sent invalid JSON.');
 }
 
 function urlEncodedParser(body) {
-  return querystring.parse(body);
+  return _querystring2['default'].parse(body);
 }
 
 function graphqlParser(body) {
@@ -99,7 +117,7 @@ function read(req, typeInfo, parseFn, next) {
 
   // Assert charset encoding per JSON RFC 7159 sec 8.1
   if (charset.slice(0, 4) !== 'utf-') {
-    throw httpError(415, `Unsupported charset "${charset.toUpperCase()}".`);
+    throw (0, _httpErrors2['default'])(415, 'Unsupported charset "' + charset.toUpperCase() + '".');
   }
 
   // Get content-encoding (e.g. gzip)
@@ -109,13 +127,9 @@ function read(req, typeInfo, parseFn, next) {
   var stream = decompressed(req, encoding);
 
   // Read body from stream.
-  getBody(stream, { encoding: charset, length, limit }, function (err, body) {
+  (0, _rawBody2['default'])(stream, { encoding: charset, length: length, limit: limit }, function (err, body) {
     if (err) {
-      return next(
-        err.type === 'encoding.unsupported' ?
-          httpError(415, `Unsupported charset "${charset.toUpperCase()}".`) :
-          httpError(400, `Invalid body: ${err.message}.`)
-      );
+      return next(err.type === 'encoding.unsupported' ? (0, _httpErrors2['default'])(415, 'Unsupported charset "' + charset.toUpperCase() + '".') : (0, _httpErrors2['default'])(400, 'Invalid body: ' + err.message + '.'));
     }
 
     try {
@@ -130,9 +144,12 @@ function read(req, typeInfo, parseFn, next) {
 // Return a decompressed stream, given an encoding.
 function decompressed(req, encoding) {
   switch (encoding) {
-    case 'identity': return req;
-    case 'deflate': return req.pipe(zlib.createInflate());
-    case 'gzip': return req.pipe(zlib.createGunzip());
+    case 'identity':
+      return req;
+    case 'deflate':
+      return req.pipe(_zlib2['default'].createInflate());
+    case 'gzip':
+      return req.pipe(_zlib2['default'].createGunzip());
   }
-  throw httpError(415, `Unsupported content-encoding "${encoding}".`);
+  throw (0, _httpErrors2['default'])(415, 'Unsupported content-encoding "' + encoding + '".');
 }
